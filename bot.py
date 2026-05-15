@@ -1,4 +1,5 @@
 import os
+import base64
 import tempfile
 import requests
 import anthropic
@@ -13,7 +14,7 @@ ALLOWED_USER_ID = int(os.environ.get("ALLOWED_USER_ID", "0"))
 
 claude = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
 
-def generate_caption(image_url: str, hint: str = "") -> str:
+def generate_caption(image_bytes: bytes, hint: str = "") -> str:
     prompt = f"""Tu es un community manager sympathique et créatif.
 Écris un texte de publication Facebook chaleureux et attrayant pour cette image.
 {f"Contexte : {hint}" if hint else ""}
@@ -28,13 +29,14 @@ Règles :
 
 Réponds uniquement avec le texte, sans explication."""
 
+    image_data = base64.standard_b64encode(image_bytes).decode("utf-8")
     response = claude.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=400,
         messages=[{
             "role": "user",
             "content": [
-                {"type": "image", "source": {"type": "url", "url": image_url}},
+                {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": image_data}},
                 {"type": "text", "text": prompt}
             ]
         }]
@@ -64,12 +66,13 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("📸 Photo reçue ! Je prépare ton post...")
 
     try:
-        photo   = update.message.photo[-1]
-        file    = await context.bot.get_file(photo.file_id)
-        img_url = file.file_path
-        hint    = update.message.caption or ""
+        photo     = update.message.photo[-1]
+        file      = await context.bot.get_file(photo.file_id)
+        img_url   = file.file_path
+        img_bytes = bytes(await file.download_as_bytearray())
+        hint      = update.message.caption or ""
 
-        caption = generate_caption(img_url, hint)
+        caption = generate_caption(img_bytes, hint)
 
         await update.message.reply_text(
             f"✍️ Voici le texte généré :\n\n{caption}\n\n"
