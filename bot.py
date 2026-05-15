@@ -110,9 +110,18 @@ async def handle_confirmation(update: Update, context: ContextTypes.DEFAULT_TYPE
     except Exception as e:
         await update.message.reply_text(f"❌ Erreur lors de la publication : {e}")
 
+if not TELEGRAM_TOKEN:
+    raise RuntimeError("❌ TELEGRAM_TOKEN est vide. Vérifie tes variables dans Railway.")
+if not ANTHROPIC_KEY:
+    raise RuntimeError("❌ ANTHROPIC_KEY est vide. Vérifie tes variables dans Railway.")
+if not FB_PAGE_TOKEN:
+    raise RuntimeError("❌ FB_PAGE_TOKEN est vide. Vérifie tes variables dans Railway.")
+if not FB_PAGE_ID:
+    raise RuntimeError("❌ FB_PAGE_ID est vide. Vérifie tes variables dans Railway.")
+
 app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
 app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_confirmation))
 
-print("✅ Bot démarré — envoie une photo sur Telegram !")
+print("✅ Variables OK — connexion à Telegram...")
 app.run_polling()
